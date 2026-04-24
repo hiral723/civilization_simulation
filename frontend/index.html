@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Chronicles of Collapse — Civilization Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --gold: #C8A951; --gold-dim: #7A6330; --gold-light: #E8C870;
+  --ember: #D4522A; --ember-dim: #8B3020;
+  --jade: #5B9E6A; --jade-dim: #3A6A45;
+  --ash: #8A7F6E; --ash-light: #B8ADA0;
+  --deep: #0D0B08; --panel: rgba(255,255,255,0.04);
+  --panel-hover: rgba(255,255,255,0.07);
+  --border: rgba(200,169,81,0.18);
+  --border-bright: rgba(200,169,81,0.45);
+  --red: #C05050; --red-dim: #7A3030;
+  --blue: #6B9ACE; --blue-dim: #3A5A8A;
+}
+body {
+  background: #0D0B08;
+  background-image: radial-gradient(ellipse at 20% 0%, rgba(200,169,81,0.04) 0%, transparent 50%),
+                    radial-gradient(ellipse at 80% 100%, rgba(100,60,20,0.06) 0%, transparent 50%);
+  color: #E8DCC8;
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 16px;
+  min-height: 100vh;
+}
+
+/* ── LAYOUT ── */
+.container { max-width: 1160px; margin: 0 auto; padding: 2rem 1.5rem; }
+.masthead {
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 2rem;
+  margin-bottom: 2rem;
+  position: relative;
+}
+.masthead::before {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+.masthead-eyebrow {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 0.45em;
+  color: var(--gold-dim);
+  margin-bottom: .7rem;
+  text-transform: uppercase;
+}
+.masthead h1 {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 900;
+  color: var(--gold);
+  line-height: 1.05;
+  margin-bottom: .4rem;
+  text-shadow: 0 0 60px rgba(200,169,81,0.2);
+}
+.masthead p { color: var(--ash); font-style: italic; font-size: 1rem; }
+
+/* ── NAV TABS ── */
+.nav-tabs {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+  overflow-x: auto;
+}
+.nav-tab {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  color: var(--ash);
+  padding: .55rem 1.1rem;
+  cursor: pointer;
+  transition: all .2s;
+  border-radius: 3px 3px 0 0;
+  white-space: nowrap;
+  position: relative;
+  bottom: -1px;
+}
+.nav-tab:hover { color: var(--gold-dim); border-color: var(--border); }
+.nav-tab.active {
+  color: var(--gold);
+  border-color: var(--border);
+  border-bottom: 1px solid var(--deep);
+  background: rgba(200,169,81,0.05);
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── CIV SELECTOR ── */
+.civ-selector { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.civ-card {
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1.25rem 1.5rem;
+  cursor: pointer;
+  transition: all .2s;
+  background: var(--panel);
+  position: relative;
+  overflow: hidden;
+}
+.civ-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--border-bright);
+  opacity: 0;
+  transition: opacity .2s;
+}
+.civ-card:hover { background: var(--panel-hover); }
+.civ-card:hover::before { opacity: 1; }
+.civ-card.active { border-color: var(--gold-dim); background: rgba(200,169,81,0.06); }
+.civ-card.active.fail { border-color: rgba(212,82,42,0.5); background: rgba(212,82,42,0.04); }
+.civ-card.active::before { opacity: 1; }
+.civ-card.active.fail::before { background: var(--ember); }
+.civ-tag {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 2px;
+  display: inline-block;
+  margin-bottom: .5rem;
+}
+.tag-pass { background: rgba(200,169,81,0.12); color: var(--gold); border: .5px solid rgba(200,169,81,0.3); }
+.tag-fail { background: rgba(212,82,42,0.12); color: var(--ember); border: .5px solid rgba(212,82,42,0.3); }
+.civ-card h2 { font-family: 'Cinzel', serif; font-size: 1.05rem; font-weight: 600; color: #E8DCC8; margin-bottom: .2rem; }
+.civ-card p { font-size: .82rem; color: var(--ash); font-style: italic; }
+.civ-period { font-family: 'Cinzel', serif; font-size: .68rem; color: var(--gold-dim); margin-top: .4rem; letter-spacing: .1em; }
+.civ-card .delete-btn {
+  font-family: 'Cinzel', serif; font-size: 7.5px; letter-spacing: .2em; text-transform: uppercase;
+  background: transparent; border: 1px solid rgba(212,82,42,0.3); color: #C05050;
+  padding: .25rem .55rem; border-radius: 2px; cursor: pointer; margin-top: .5rem;
+  transition: all .2s; display: inline-block;
+}
+.civ-card .delete-btn:hover { background: rgba(212,82,42,0.15); }
+
+/* ── DASHBOARD STATS ── */
+.dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+.stat-tile {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1rem 1.1rem;
+  transition: border-color .2s;
+}
+.stat-tile:hover { border-color: var(--border-bright); }
+.stat-label {
+  font-family: 'Cinzel', serif; font-size: 8px; letter-spacing: .3em;
+  color: var(--ash); text-transform: uppercase; margin-bottom: .4rem;
+  display: flex; align-items: center; gap: 6px;
+}
+.stat-icon { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.stat-value { font-family: 'Cinzel', serif; font-size: 1.7rem; font-weight: 600; line-height: 1; margin-bottom: .2rem; }
+.stat-sub { font-size: .72rem; color: var(--ash); font-style: italic; }
+.phase-bar { width: 100%; height: 2px; background: rgba(255,255,255,0.06); border-radius: 2px; margin-top: .6rem; overflow: hidden; }
+.phase-fill { height: 100%; border-radius: 2px; transition: width 1s ease; }
+
+/* ── SECTION HEADS ── */
+.section-head {
+  font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: .35em; color: var(--gold-dim);
+  text-transform: uppercase; margin-bottom: 1rem; padding-bottom: .5rem;
+  border-bottom: .5px solid var(--border); display: flex; align-items: center; gap: 8px;
+}
+.section-head::before { content: ''; width: 20px; height: .5px; background: var(--gold-dim); flex-shrink: 0; }
+
+/* ── CHARTS ── */
+.charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem; }
+.chart-area {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 5px;
+  padding: 1.25rem;
+}
+.chart-wrap { position: relative; width: 100%; height: 240px; }
+.chart-wrap-sm { position: relative; width: 100%; height: 240px; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: .75rem; font-size: 11px; color: var(--ash); }
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── DECLINE RATE CHART ── */
+.rate-chart-area { background: var(--panel); border: 1px solid var(--border); border-radius: 5px; padding: 1.25rem; margin-bottom: 1.5rem; }
+
+/* ── COLLAPSE PANEL ── */
+.collapse-panel {
+  border: 1px solid rgba(155,48,48,0.35);
+  border-radius: 5px;
+  padding: 1.25rem 1.5rem;
+  background: rgba(155,48,48,0.04);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.collapse-meter { width: 88px; height: 88px; flex-shrink: 0; }
+.collapse-meter svg { width: 100%; height: 100%; }
+.collapse-text { flex: 1; min-width: 200px; }
+.collapse-text h3 { font-family: 'Cinzel', serif; font-size: .9rem; color: #C05050; margin-bottom: .3rem; }
+.collapse-text p { font-size: .82rem; color: var(--ash); font-style: italic; }
+.stability-row { display: flex; gap: .75rem; margin-top: .75rem; flex-wrap: wrap; }
+.stab-item {
+  flex: 1; min-width: 80px; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 4px; padding: .65rem .85rem; text-align: center;
+}
+.stab-label { font-family: 'Cinzel', serif; font-size: 7.5px; letter-spacing: .3em; color: var(--ash); margin-bottom: .3rem; text-transform: uppercase; }
+.stab-value { font-family: 'Cinzel', serif; font-size: 1.1rem; font-weight: 600; }
+
+/* ── EVENTS ── */
+.events-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 5px; padding: 1.25rem; margin-bottom: 1.5rem; }
+.events-filter { display: flex; gap: .5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.filter-btn {
+  font-family: 'Cinzel', serif; font-size: 8px; letter-spacing: .25em; text-transform: uppercase;
+  background: transparent; border: 1px solid var(--border); color: var(--ash);
+  padding: .3rem .7rem; border-radius: 2px; cursor: pointer; transition: all .2s;
+}
+.filter-btn:hover, .filter-btn.active { border-color: var(--gold-dim); color: var(--gold-dim); }
+.event-list { display: flex; flex-direction: column; gap: .4rem; max-height: 300px; overflow-y: auto; }
+.event-row {
+  display: grid; grid-template-columns: 90px 1fr auto; gap: .75rem; align-items: center;
+  padding: .5rem .75rem; border-radius: 3px; font-size: .82rem; border-left: 2px solid transparent;
+  transition: background .15s;
+}
+.event-row:hover { background: rgba(255,255,255,0.03); }
+.event-row.innovation { border-color: #5B9E6A; background: rgba(91,158,106,0.05); }
+.event-row.conflict   { border-color: var(--ember); background: rgba(212,82,42,0.05); }
+.event-row.resource   { border-color: #8B7355; background: rgba(139,115,85,0.05); }
+.event-row.collapse   { border-color: #9B3030; background: rgba(155,48,48,0.07); }
+.event-year  { font-family: 'Cinzel', serif; font-size: .72rem; color: var(--gold-dim); }
+.event-name  { color: #D8CDB8; }
+.event-badge {
+  font-size: 8.5px; font-family: 'Cinzel', serif; letter-spacing: .2em;
+  text-transform: uppercase; padding: 2px 6px; border-radius: 2px;
+}
+.badge-innovation { background: rgba(91,158,106,0.2); color: #7BC48A; }
+.badge-conflict   { background: rgba(212,82,42,0.2); color: #E07050; }
+.badge-resource   { background: rgba(139,115,85,0.2); color: #B89B75; }
+.badge-collapse   { background: rgba(155,48,48,0.2); color: #C05050; }
+
+/* ── TIMELINE ── */
+.timeline { position: relative; padding-left: 2rem; margin-bottom: 1.5rem; }
+.timeline::before { content: ''; position: absolute; left: 6px; top: 0; bottom: 0; width: 1px; background: var(--border); }
+.timeline-item { position: relative; margin-bottom: 1.25rem; }
+.timeline-item::before {
+  content: ''; position: absolute; left: -1.75rem; top: 4px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--deep); border: 1.5px solid var(--gold-dim);
+}
+.timeline-item.innovation::before { border-color: var(--jade); }
+.timeline-item.conflict::before   { border-color: var(--ember); }
+.timeline-item.collapse::before   { border-color: var(--red); background: var(--red-dim); }
+.timeline-item.resource::before   { border-color: #8B7355; }
+.timeline-year { font-family: 'Cinzel', serif; font-size: .7rem; color: var(--gold-dim); margin-bottom: .15rem; }
+.timeline-name { font-size: .88rem; color: #D8CDB8; }
+.timeline-impact {
+  font-family: 'Cinzel', serif; font-size: .68rem; color: var(--ash);
+  margin-top: .1rem;
+}
+
+/* ── LEADERBOARD ── */
+.leaderboard-table { width: 100%; border-collapse: collapse; font-size: .88rem; margin-bottom: 1.5rem; }
+.leaderboard-table th {
+  font-family: 'Cinzel', serif; font-size: .72rem; letter-spacing: .2em;
+  color: var(--gold-dim); font-weight: 400; padding: .6rem .75rem;
+  border-bottom: .5px solid var(--border); text-align: left; white-space: nowrap;
+}
+.leaderboard-table td { padding: .55rem .75rem; border-bottom: .5px solid rgba(200,169,81,0.08); vertical-align: middle; }
+.leaderboard-table tr:hover td { background: var(--panel); }
+.rank-badge {
+  font-family: 'Cinzel', serif; font-size: .75rem; color: var(--gold-dim);
+  width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+}
+.rank-badge.gold-rank { border-color: var(--gold); color: var(--gold); background: rgba(200,169,81,0.1); }
+.rank-badge.silver-rank { border-color: #A0A0A0; color: #C0C0C0; }
+.legacy-bar { height: 4px; background: rgba(200,169,81,0.1); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+.legacy-fill { height: 100%; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); border-radius: 2px; transition: width .8s ease; }
+
+/* ── COMPARE ── */
+.compare-btn {
+  font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: .3em; text-transform: uppercase;
+  background: transparent; border: 1px solid var(--border); color: var(--gold-dim);
+  padding: .5rem 1rem; border-radius: 3px; cursor: pointer; transition: all .2s; margin-bottom: 1.5rem;
+}
+.compare-btn:hover { border-color: var(--gold); color: var(--gold); }
+.compare-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.compare-column { background: var(--panel); border: 1px solid var(--border); border-radius: 5px; padding: 1.25rem; }
+.compare-column h3 { font-family: 'Cinzel', serif; font-size: .9rem; color: var(--gold); margin-bottom: 1rem; border-bottom: .5px solid var(--border); padding-bottom: .5rem; }
+.compare-row { display: flex; justify-content: space-between; align-items: center; padding: .3rem 0; border-bottom: .5px solid rgba(255,255,255,0.04); font-size: .82rem; }
+.compare-row:last-child { border-bottom: none; }
+.compare-key { color: var(--ash); font-size: .78rem; }
+.compare-val { font-family: 'Cinzel', serif; font-size: .85rem; color: #E8DCC8; }
+.modal-close-btn {
+  font-family: 'Cinzel', serif; font-size: 8.5px; letter-spacing: .25em; text-transform: uppercase;
+  background: transparent; border: 1px solid var(--border); color: var(--ash);
+  padding: .4rem .8rem; border-radius: 3px; cursor: pointer; margin-top: 1rem;
+}
+.modal-close-btn:hover { border-color: var(--ash); }
+
+/* ── ADD CIV FORM ── */
+.add-civ-toggle { display: flex; justify-content: flex-end; margin-bottom: 1.5rem; }
+.add-civ-btn {
+  font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: .3em; text-transform: uppercase;
+  background: rgba(200,169,81,0.08); border: 1px solid rgba(200,169,81,0.4); color: var(--gold);
+  padding: .55rem 1.2rem; border-radius: 3px; cursor: pointer; transition: all .2s;
+}
+.add-civ-btn:hover { background: rgba(200,169,81,0.18); }
+.form-panel {
+  background: #100E0A; border: 1px solid rgba(200,169,81,0.25); border-radius: 6px;
+  padding: 1.75rem; margin-bottom: 2rem; display: none;
+}
+.form-panel.open { display: block; }
+.form-panel h3 { font-family: 'Cinzel', serif; font-size: .95rem; color: var(--gold); margin-bottom: 1.5rem; padding-bottom: .6rem; border-bottom: .5px solid var(--border); }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; margin-bottom: 1.25rem; }
+.form-grid.trio { grid-template-columns: 1fr 1fr 1fr; }
+.field { display: flex; flex-direction: column; gap: .3rem; }
+.field label { font-family: 'Cinzel', serif; font-size: 8.5px; letter-spacing: .25em; color: var(--ash); text-transform: uppercase; }
+.field input, .field select {
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(200,169,81,0.2); border-radius: 3px;
+  color: #E8DCC8; font-family: 'Crimson Pro', Georgia, serif; font-size: .88rem;
+  padding: .45rem .65rem; outline: none; transition: border-color .2s; width: 100%;
+}
+.field input:focus, .field select:focus { border-color: rgba(200,169,81,0.6); }
+.field select option { background: #1A1410; }
+.form-sub-head {
+  font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: .3em; color: var(--gold-dim);
+  text-transform: uppercase; margin: 1.5rem 0 .8rem; padding-bottom: .4rem;
+  border-bottom: .5px solid var(--border); display: flex; justify-content: space-between; align-items: center;
+}
+.add-row-btn {
+  font-family: 'Cinzel', serif; font-size: 8px; letter-spacing: .2em; text-transform: uppercase;
+  background: transparent; border: 1px solid var(--border); color: var(--gold-dim);
+  padding: .3rem .7rem; border-radius: 3px; cursor: pointer; transition: all .2s;
+}
+.add-row-btn:hover { border-color: var(--gold); color: var(--gold); }
+.dynamic-rows { display: flex; flex-direction: column; gap: .6rem; margin-bottom: .5rem; }
+.snap-row, .evt-row { display: grid; gap: .5rem; align-items: end; }
+.snap-row { grid-template-columns: 80px 70px 70px 70px 70px 70px 70px 110px 24px; }
+.evt-row  { grid-template-columns: 80px 70px 1fr 110px 70px 24px; }
+.rm-btn {
+  background: transparent; border: 1px solid rgba(212,82,42,0.3); color: #C05050;
+  border-radius: 3px; width: 24px; height: 30px; cursor: pointer; font-size: .9rem;
+  line-height: 1; transition: all .2s;
+}
+.rm-btn:hover { background: rgba(212,82,42,0.15); }
+.row-label { font-family: 'Cinzel', serif; font-size: 7.5px; letter-spacing: .15em; color: var(--ash); text-transform: uppercase; margin-bottom: .2rem; }
+.form-actions { display: flex; gap: .75rem; margin-top: 1.5rem; align-items: center; }
+.submit-btn {
+  font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: .3em; text-transform: uppercase;
+  background: rgba(200,169,81,0.12); border: 1px solid rgba(200,169,81,0.5); color: var(--gold);
+  padding: .6rem 1.4rem; border-radius: 3px; cursor: pointer; transition: all .2s;
+}
+.submit-btn:hover { background: rgba(200,169,81,0.22); }
+.cancel-btn {
+  font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: .3em; text-transform: uppercase;
+  background: transparent; border: 1px solid var(--border); color: var(--ash);
+  padding: .6rem 1.2rem; border-radius: 3px; cursor: pointer; transition: all .2s;
+}
+.cancel-btn:hover { border-color: var(--ash); }
+.form-msg { font-size: .82rem; font-style: italic; padding: .35rem .75rem; border-radius: 3px; display: none; }
+.form-msg.ok  { background: rgba(91,158,106,0.12); color: #7BC48A; border: 1px solid rgba(91,158,106,0.3); }
+.form-msg.err { background: rgba(212,82,42,0.12); color: #E07050; border: 1px solid rgba(212,82,42,0.3); }
+
+/* ── MISC ── */
+.empty-state { color: var(--ash); font-style: italic; padding: 1rem; font-size: .88rem; }
+.tag-badge {
+  font-family: 'Cinzel', serif; font-size: 7.5px; letter-spacing: .2em; text-transform: uppercase;
+  padding: 2px 6px; border-radius: 2px;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .dashboard { grid-template-columns: 1fr 1fr; }
+  .charts-grid { grid-template-columns: 1fr; }
+  .civ-selector { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .dashboard { grid-template-columns: 1fr; }
+  .snap-row { grid-template-columns: 1fr 1fr 1fr; }
+}
+
+/* ── FADE-IN ANIMATION ── */
+.fade-in { animation: fadeIn .4s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ── MASTHEAD ── -->
+  <div class="masthead">
+    <p class="masthead-eyebrow">DBMS + Web Programming Project</p>
+    <h1>Chronicles of Collapse</h1>
+    <p>Rise, stagnation &amp; fall — civilizations through time-series analytics</p>
+  </div>
+
+  <!-- ── NAV TABS ── -->
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="nav-tab" onclick="switchTab('timeline')">Timeline</button>
+    <button class="nav-tab" onclick="switchTab('leaderboard')">Leaderboard</button>
+    <button class="nav-tab" onclick="switchTab('add')">+ Add Civilization</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       TAB: DASHBOARD
+  ══════════════════════════════════════════ -->
+  <div class="tab-panel active" id="tab-dashboard">
+
+    <div class="civ-selector" id="civSelector">
+      <div class="empty-state">Loading civilizations...</div>
+    </div>
+
+    <button class="compare-btn" onclick="compareAll()">Compare All Civilizations →</button>
+    <div id="compareModal"></div>
+
+    <div class="dashboard" id="statsRow"></div>
+
+    <div class="collapse-panel">
+      <div class="collapse-meter">
+        <svg viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(155,48,48,0.15)" stroke-width="6"/>
+          <circle id="collapsArc" cx="40" cy="40" r="32" fill="none" stroke="#C05050" stroke-width="6"
+            stroke-dasharray="201" stroke-dashoffset="201" stroke-linecap="round"
+            transform="rotate(-90 40 40)" style="transition:stroke-dashoffset 1s ease;"/>
+          <text x="40" y="44" text-anchor="middle" font-family="Cinzel,serif" font-size="13" fill="#C05050" id="collapsePct">0%</text>
+        </svg>
+      </div>
+      <div class="collapse-text">
+        <h3 id="collapseTitle">Loading...</h3>
+        <p id="collapseDesc">Fetching data from MySQL...</p>
+        <div class="stability-row">
+          <div class="stab-item"><div class="stab-label">Stability Index</div><div class="stab-value" id="stabIdx">—</div></div>
+          <div class="stab-item"><div class="stab-label">Growth Phase</div><div class="stab-value" id="growthPhase" style="font-size:.85rem;color:var(--gold)">—</div></div>
+          <div class="stab-item"><div class="stab-label">Resource Pressure</div><div class="stab-value" id="resPressure">—</div></div>
+          <div class="stab-item"><div class="stab-label">Resilience</div><div class="stab-value" id="resilienceScore" style="color:var(--jade)">—</div></div>
+          <div class="stab-item"><div class="stab-label">Longevity</div><div class="stab-value" id="longevityTier" style="font-size:.72rem;color:var(--gold-dim)">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head">Temporal Metrics</div>
+    <div class="charts-grid">
+      <div class="chart-area">
+        <div class="legend" id="chartLegend"></div>
+        <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
+      </div>
+      <div class="chart-area">
+        <div class="section-head" style="margin-bottom:.75rem">Power Profile</div>
+        <div class="chart-wrap-sm"><canvas id="radarChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-head">Decline Velocity Analysis</div>
+    <div class="rate-chart-area">
+      <div class="chart-wrap" style="height:160px"><canvas id="rateChart"></canvas></div>
+    </div>
+
+    <div class="section-head">Recorded Events</div>
+    <div class="events-panel">
+      <div class="events-filter" id="eventsFilter">
+        <button class="filter-btn active" onclick="filterEvents('all', this)">All</button>
+        <button class="filter-btn" onclick="filterEvents('innovation', this)">Innovation</button>
+        <button class="filter-btn" onclick="filterEvents('conflict', this)">Conflict</button>
+        <button class="filter-btn" onclick="filterEvents('resource', this)">Resource</button>
+        <button class="filter-btn" onclick="filterEvents('collapse', this)">Collapse</button>
+      </div>
+      <div class="event-list" id="eventList">
+        <div class="empty-state">Loading events...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       TAB: TIMELINE
+  ══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-timeline">
+    <div class="section-head">Historical Timeline</div>
+    <div class="timeline" id="timelinePanel">
+      <div class="empty-state">Select a civilization and switch here to view its timeline.</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       TAB: LEADERBOARD
+  ══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-leaderboard">
+    <div class="section-head">Civilization Leaderboard — Legacy Score</div>
+    <div id="leaderboardContent">
+      <div class="empty-state">Loading leaderboard...</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       TAB: ADD CIVILIZATION
+  ══════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-add">
+    <div class="form-panel open" id="addCivForm">
+      <h3>New Civilization</h3>
+
+      <div class="form-grid">
+        <div class="field"><label>Name</label><input type="text" id="f-name" placeholder="e.g. Byzantine Empire"/></div>
+        <div class="field"><label>Region</label><input type="text" id="f-region" placeholder="e.g. Eastern Mediterranean"/></div>
+        <div class="field"><label>Start Year (negative = BCE)</label><input type="number" id="f-start" placeholder="-330"/></div>
+        <div class="field"><label>End Year</label><input type="number" id="f-end" placeholder="1453"/></div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Case Type</label>
+          <select id="f-type">
+            <option value="pass">Pass — Gradual / Managed Decline</option>
+            <option value="fail">Fail — Rapid Collapse</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-sub-head">
+        Time-Series Snapshots
+        <button class="add-row-btn" onclick="addSnapRow()">+ Add Row</button>
+      </div>
+      <div style="overflow-x:auto">
+        <div style="display:grid;grid-template-columns:80px 70px 70px 70px 70px 70px 70px 110px 24px;gap:.5rem;margin-bottom:.3rem;min-width:620px;">
+          <span class="row-label">Year Label</span><span class="row-label">Year #</span>
+          <span class="row-label">Pop (M)</span><span class="row-label">Tech Lvl</span>
+          <span class="row-label">Energy</span><span class="row-label">Resource%</span>
+          <span class="row-label">Stability</span><span class="row-label">Growth Phase</span><span></span>
+        </div>
+        <div class="dynamic-rows" id="snapRows" style="min-width:620px;"></div>
+      </div>
+
+      <div class="form-sub-head">
+        Historical Events (optional)
+        <button class="add-row-btn" onclick="addEvtRow()">+ Add Row</button>
+      </div>
+      <div style="overflow-x:auto">
+        <div style="display:grid;grid-template-columns:80px 70px 1fr 110px 70px 24px;gap:.5rem;margin-bottom:.3rem;min-width:540px;">
+          <span class="row-label">Year Label</span><span class="row-label">Year #</span>
+          <span class="row-label">Event Name</span><span class="row-label">Type</span>
+          <span class="row-label">Impact</span><span></span>
+        </div>
+        <div class="dynamic-rows" id="evtRows" style="min-width:540px;"></div>
+      </div>
+
+      <div class="form-actions">
+        <button class="submit-btn" onclick="submitCiv()">Create Civilization →</button>
+        <span class="form-msg" id="formMsg"></span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
