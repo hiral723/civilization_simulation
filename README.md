@@ -54,12 +54,6 @@ Two built-in civilizations are seeded as case studies:
 - Chronological merged view of both snapshot phases and historical events
 - Color-coded by event type: innovation (green), conflict (red), resource (amber), collapse (dark red)
 
-### AI Narrative Tab
-- One-click AI-powered historical chronicle generation
-- Calls Claude API with actual MySQL data (snapshots + events) as context
-- Generates a 3-paragraph dramatic narrative + one-sentence epitaph
-- Loading spinner while Claude is thinking
-
 ### Leaderboard Tab
 - Ranks all civilizations by computed **Legacy Score**
 - Formula: `(peak_pop × 2) + (peak_tech × 5) + (peak_stability × 0.5) + (lifespan ÷ 100)`
