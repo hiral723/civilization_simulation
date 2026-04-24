@@ -147,7 +147,6 @@ civilization-simulator/
 ## ⚠️ Known Limitations
 
 - No authentication — anyone can add or delete civilizations
-- Claude API narrative requires a valid Anthropic API key to be accessible from the backend host
 - No persistent `.env` file included — DB password must be set manually in `db.js` or via environment
 - `node_modules/` should not be committed — add to `.gitignore` before pushing
 
